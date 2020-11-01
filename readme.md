@@ -1,7 +1,7 @@
 # 你看我像是写文档的人吗(hnust校园网自动登录脚本)
 > 校园网每一次连接又要登录,觉得不爽,写个小脚本来实现自动登录
 ## 快速开始
-- 安装python环境(可以直接通过exe可执行文件运行)
+- 安装`Python`环境(可以直接通过`exe`可执行文件运行)
 - 安装依赖
 - 部署到启动目录   
 ------
@@ -19,22 +19,23 @@ pip install -r requirements.txt
 ```
 ## 部署与使用
 程序有两种启动方法
-* 使用python解释器来使用
-* 直接使用通过pyinstaller打包好了的exe可执行文件运行
+* 使用```Python```解释器来使用
+* 直接使用通过```pyinstaller```打包好了的```exe```可执行文件运行
 
-#### 一, 使用python解释器
+#### 一, 使用`Python`解释器
 在安装好了python解释器之后,打开命令行输入来登录校园网
 
 ```bash
-python hnust login
+python hnust.py login
 ```
 > 若你这么做了,程序会询问你的密码和账号,你不用担心你的密码会被泄露.
 > 因为这个软件是一个开源软件, 你随时拥有可以查看该软件源代码的权利.
 > 因此不必担心我回到去你的密码
 
-#### 二, 使用exe可执行文件启动
+#### 二, 使用`exe`可执行文件启动
 同样的, 软件的功能是一样的只是运行效率稍微低了
 输入以下命令来运行软件
+
 ```bash
 ./hnust.exe login
 ```
@@ -42,6 +43,7 @@ python hnust login
 ## 功能
 当你在控制台输入```python hnust.py --help```的时候
 你会得到一下内容
+
 ```bash
 Usage: hnust.py [OPTIONS] COMMAND [ARGS]...
 
