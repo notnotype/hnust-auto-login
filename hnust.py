@@ -70,7 +70,7 @@ def cli():
 @click.option("--username", prompt="你的学号", default=getProperties("username"))
 @click.option("--password", hide_input=True, prompt="你的校园网密码",
               default=("*" * len(getProperties("password")) if getProperties("password") else None))  # 能够回车直接输入默认值
-@click.option("--operator", prompt="运营商选择[dx,yd,lt, xyw]", default=getProperties("operator"))
+@click.option("--operator", prompt="运营商选择[dx,yd,lt,xyw]", default=getProperties("operator"))
 def login(username, password, operator):
     """
     用校园网用户名（学号）和校园网密码登录校园网

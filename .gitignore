@@ -1,2 +1,6 @@
 .idea
 .config
+__pycache__
+build
+hnust
+hnust.spec

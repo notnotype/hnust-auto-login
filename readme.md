@@ -74,6 +74,16 @@ r = get(f"http://login.hnust.cn:801/eportal/?c=Portal&a=login&callback=dr1004&lo
 f"%2C{username}%40telecom&user_password={password}&wlan_user_ip={getIp()}&wlan_user_ipv6" +
 f"=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=3.3.3&v={random.randint(1000, 9999)}",timeout=5)
 ```
+## 如何编译
+因为被`pyinstaller`编译后的可执行文件很大,所以`exe`文件不能够得到及时的更新,所以可以手动编译
+运行一下命令来编译
+```bash
+pip install pyinstaller
+pyinstall hnust.py     #生成一个文件夹
+pyinstall -F hnust.py  #生成单个文件 
+```
+编译后的可执行文件在`dist/hnust/hnust.exe`位置
+编译后的可执行文件在`dist/hnust.exe`位置
 
 ## 未来
 * 完善命令`pyton hnust.py getinfo`获取当前设备的信息
