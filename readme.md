@@ -42,7 +42,7 @@ python hnust.py login
 
 ## 功能
 当你在控制台输入```python hnust.py --help```的时候
-你会得到一下内容
+你会得到以下内容
 
 ```bash
 Usage: hnust.py [OPTIONS] COMMAND [ARGS]...
@@ -61,3 +61,19 @@ Commands:
 命令指南已经写的很明了了,我也没必要在这里多说废话了
 唯一值得注意的是命令```addstartup```
 这一条命令需要使用管理员的身份运行才能够成功
+
+## 原理
+自己看源码,我相信你看的懂的
+简单解释一下:
+就是使用`Python`发送表单给`login.hunst.cn`
+`login.hunst.cn`接受到了以后就会给我们分配网络资源
+下面的就是关键代码 -- 调用`api`
+
+```python
+r = get(f"http://login.hnust.cn:801/eportal/?c=Portal&a=login&callback=dr1004&login_method=1&user_account=%2C0" +
+f"%2C{username}%40telecom&user_password={password}&wlan_user_ip={getIp()}&wlan_user_ipv6" +
+f"=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=3.3.3&v={random.randint(1000, 9999)}",timeout=5)
+```
+
+## 未来
+* 完善命令`pyton hnust.py getinfo`获取当前设备的信息
