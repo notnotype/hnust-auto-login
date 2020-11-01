@@ -4,6 +4,14 @@
 - 安装python环境(可以直接通过exe可执行文件运行)
 - 安装依赖
 - 部署到启动目录   
+------
+##### 一键脚本
+```bash
+git clone https://github.com/notnotype/hnust-auto-login.git
+pip install -r requirements.txt
+cd hnust-auto-login
+python hnust.py login
+```
 
 ## 安装依赖
 ```bash
