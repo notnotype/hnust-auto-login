@@ -8,8 +8,8 @@
 ##### 一键脚本
 ```bash
 git clone https://github.com/notnotype/hnust-auto-login.git
-pip install -r requirements.txt
 cd hnust-auto-login
+pip install -r requirements.txt
 python hnust.py login
 ```
 
@@ -30,10 +30,10 @@ python hnust.py login
 ```
 > 若你这么做了,程序会询问你的密码和账号,你不用担心你的密码会被泄露.
 > 因为这个软件是一个开源软件, 你随时拥有可以查看该软件源代码的权利.
-> 因此不必担心我回到去你的密码
+> 因此不必担心我会盗取你的密码
 
 #### 二, 使用`exe`可执行文件启动
-同样的, 软件的功能是一样的只是运行效率稍微低了
+同样的, 软件的功能是一样的只是运行效率稍微低了,
 输入以下命令来运行软件
 
 ```bash
@@ -79,8 +79,8 @@ f"=&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=3.3.3&v={rand
 运行一下命令来编译
 ```bash
 pip install pyinstaller
-pyinstall hnust.py     #生成一个文件夹
-pyinstall -F hnust.py  #生成单个文件 
+pyinstaller hnust.py     #生成一个文件夹
+pyinstaller -F hnust.py  #生成单个文件 
 ```
 编译后的可执行文件在`dist/hnust/hnust.exe`位置
 编译后的可执行文件在`dist/hnust.exe`位置

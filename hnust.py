@@ -17,8 +17,13 @@ def getIp():
     查询本机ip地址
     :return: ip
     """
-    hostname = socket.gethostname()
-    return socket.gethostbyname(hostname)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('192.168.254.226', 80))
+        ip = s.getsockname()[0]
+    finally:
+        s.close()
+    return ip
 
 
 def isInternetAccess():
@@ -177,7 +182,6 @@ def _logOut():
 def logOut():
     """退出登录"""
     _logOut()
-
 
 
 # noinspection PyBroadException
