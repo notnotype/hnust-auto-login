@@ -1,17 +1,51 @@
 import os
 import random
 import sys
+import logging
+from os.path import exists
+from time import localtime
 
 import click
 import socket
 from requests import get
 from requests.exceptions import ConnectionError, ConnectTimeout
+from base64 import b64decode
 
-headers = {
-    "User-Agent": r"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
-                  "Chrome/86.0.4240.111 Safari/537.36"}
+logger: logging.Logger
 
 
+def init_logger(log_dir='log', level=logging.INFO):
+    global logger
+    logger = logging.Logger(__name__)
+    if not exists(log_dir):
+        os.mkdir(log_dir)
+    handler = logging.FileHandler(f"{log_dir}/"
+                                  f"{localtime().tm_year}-"
+                                  f"{localtime().tm_mon}-"
+                                  f"{localtime().tm_mday}--"
+                                  f"{localtime().tm_hour}h-"
+                                  f"{localtime().tm_min}m-"
+                                  f"{localtime().tm_sec}s.log",
+                                  encoding="utf-8")
+    formatter = logging.Formatter("[%(levelname)-5.5s][%(funcName)-8.8s][%(lineno)3.3d行]-[%(message)s]")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    console = logging.StreamHandler()
+    console.setLevel(level)
+    console.setFormatter(formatter)
+
+    logger.addHandler(handler)
+    logger.addHandler(console)
+    logger.info('logger name' + __name__)
+
+
+headers = {"User-Agent": r"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
+                         "Chrome/86.0.4240.111 Safari/537.36"}
+socket.setdefaulttimeout(2)
+
+
+# todo 设置超时
 def getIp():
     """
     查询本机ip地址
@@ -27,13 +61,10 @@ def getIp():
 
 
 def isInternetAccess():
-    successCount = 0
-    for i in range(2):
-        try:
-            successCount += 0 if "<title>上网登录页</title>" in get("http://www.baidu.com", timeout=2).text else 1
-        except:
-            pass
-    return True if successCount >= 1 else False
+    if "<title>上网登录页</title>" in get("http://www.baidu.com", timeout=2).text:
+        return False
+    else:
+        return True
 
 
 def getProperties(prop):
@@ -103,43 +134,52 @@ def login(username, password, operator):
                 timeout=5)
             if resp.text == r'dr1004({"result":"1","msg":"\u8ba4\u8bc1\u6210\u529f"})':
                 message = f"[登录状态]: 登录成功: 运营商是: [{operator}]"
-                click.echo(message)
+                logger.info(message)
             elif resp.text == r'dr1004({"result":"0","msg":"","ret_code":2})':
                 message = "[登录状态]: 已经登录了"
-                click.echo(message)
-                click.echo("退出登录中......")
+                logger.info(message)
+                logger.info("退出登录中......")
                 _logOut()
                 continue  # 都已经退出登录了,就不要在检测是否可以连接至internet了
             elif "dXNlcmlkIGVycm9y" in resp.text:  # 检测userid error是否在返回值里面
                 message = "[登录状态]: 密码错误(检查是否有绑定运营商账号)"
-                click.echo(message)
+                logger.warning(message)
                 break
             elif r"\u5bc6\u7801\u4e0d\u80fd\u4e3a\u7a7a" in resp.text:
                 message = "[登录状态]: 密码不能为空"
-                click.echo(message)
+                logger.info(message)
                 break
             else:
-                message = "[登录状态]: 芜湖, 有bug了: " + resp.text
-                click.echo(message)
+                message = "[登录状态]: 芜湖, 未处理信息: " + b64decode(resp.text[7:-1]).decode()
+                logger.error(message)
                 break
 
-            click.echo("检测是否可以连接到互联网......")
+            logger.info("检测是否可以连接到互联网......")
             if isInternetAccess():
-                click.echo("可以连接互联网  登陆成功")
+                logger.info("可以连接互联网  登陆成功")
                 return
             else:
-                if retry >= 3:
-                    click.echo("该账号不能连接至Internet(你可能使用校园网登录,因此不能连接至互联网)")
+                if retry >= 10:
+                    logger.info("该账号不能连接至Internet(你可能使用校园网登录,因此不能连接至互联网)")
                     return
-                click.echo("不能连接互联网, 重试")
-                retry += 1
+                logger.info("不能连接互联网, 重试")
         except ConnectTimeout:
             message = "超时(你可能没有连接校园网wifi)"
+            logger.error(message)
+            raise
         except ConnectionError:
             message = "找不到主机(你可能没有连接校园网wifi)"
+            logger.error(message)
+            raise
         except BaseException as e:
-            message = f"未知错误[{type(e)}]：\n" + str(e)
-
+            logger.error("未知错误[{}]".format(type(e)))
+            logger.error("resp.text: {}".format(resp.text))
+            raise
+        finally:
+            retry += 1
+            if retry >= 10:
+                break
+            # logger.info("尝试次数: " + str(retry))
 
 
 
@@ -166,14 +206,14 @@ def _logOut():
         elif resp.text == r'dr1003({"result":"1","msg":"\u6ce8\u9500\u6210\u529f"})':
             message = f"IP：【{getIp()}】注销成功"
         else:
-            message = "芜湖, 有bug了: " + resp.text
+            message = "芜湖, 未处理信息: " + resp.text[7:-1].encode().decode("unicode_escape")
     except ConnectTimeout:
         message = "超时(你可能没有连接校园网wifi)"
     except ConnectionError:
         message = "找不到主机(你可能没有连接校园网wifi)"
     except BaseException as e:
         message = f"未知错误[{type(e)}]：\n" + str(e)
-    click.echo(message)
+    logger.error(message)
 
 
 # noinspection PyBroadException
@@ -191,14 +231,14 @@ def addStartup():
 
     try:
         os.popen("explorer.exe \"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp")
-        click.echo("记得使用管理员的身份运行")
+        logger.info("记得使用管理员的身份运行")
         cmd1 = f"copy hnust.py \"C:\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\hnust.py\""
         cmd2 = f"copy .config \"C:\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\.config\""
         cmd3 = f"copy hnust.exe \"C:\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\hnust.exe\""
 
-        click.echo("cmd1: " + cmd1)
-        click.echo("cmd2: " + cmd2)
-        click.echo("cmd3: " + cmd3)
+        logger.info("cmd1: " + cmd1)
+        logger.info("cmd2: " + cmd2)
+        logger.info("cmd3: " + cmd3)
 
         result1 = os.popen(
             cmd1).read()
@@ -206,14 +246,16 @@ def addStartup():
             cmd2).read()
         result3 = os.popen(
             cmd3).read()
-        click.echo(result1)
-        click.echo(result2)
-        click.echo(result3)
+        logger.info(result1)
+        logger.info(result2)
+        logger.info(result3)
 
     except IOError as e:
-        click.echo("Unable to copy file. %s" % e)
+        logger.error("Unable to copy file. %s" % e)
+        raise
     except BaseException:
-        click.echo("Unexpected error:", sys.exc_info())
+        logger.error("Unexpected error:", sys.exc_info())
+        raise
 
 
 cli.add_command(login)
@@ -221,6 +263,7 @@ cli.add_command(logOut)
 cli.add_command(getInfo)
 cli.add_command(addStartup)
 
+init_logger(level=logging.DEBUG)
 if __name__ == '__main__':
     if "StartUp" in sys.argv[0] and len(sys.argv) <= 1:  # 如果在启动目录下则自动检测登录
         sys.argv = [sys.argv[0], "login",
