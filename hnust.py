@@ -130,10 +130,10 @@ def cli():
 
 # noinspection PyBroadException
 @click.command()
-@click.option("--username", prompt="你的学号", default=getProperties("username"))
-@click.option("--password", hide_input=True, prompt="你的校园网密码",
+@click.option("--username", '-u', prompt="你的学号", default=getProperties("username"))
+@click.option("--password", '-p', hide_input=True, prompt="你的校园网密码",
               default=("*" * len(getProperties("password")) if getProperties("password") else None))  # 能够回车直接输入默认值
-@click.option("--operator", prompt="运营商选择[dx,yd,lt,xyw]", default=getProperties("operator"))
+@click.option("--operator", '-o', prompt="运营商选择[dx,yd,lt,xyw]", default=getProperties("operator"))
 def login(username, password, operator):
     """
     用校园网用户名（学号）和校园网密码登录校园网
@@ -258,6 +258,7 @@ def addStartup():
     try:
         os.popen("explorer.exe \"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp")
         logger.info("记得使用管理员的身份运行")
+        logger.warning("已经禁用此功能, 若要实现开机自启请使用windows计划任务代替之")
         cmd1 = f"copy hnust.py \"C:\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\hnust.py\""
         cmd2 = f"copy .config \"C:\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\.config\""
         cmd3 = f"copy hnust.exe \"C:\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\hnust.exe\""
