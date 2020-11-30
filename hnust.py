@@ -13,6 +13,11 @@ from requests import get
 from requests.exceptions import ConnectionError, ConnectTimeout
 from base64 import b64decode
 
+# 改变脚本的工作目录
+abs_name = os.path.abspath(__file__)
+abs_dir = os.path.dirname(abs_name)
+os.chdir(abs_dir)
+
 
 class FormatFilter(logging.Filter):
 
@@ -138,7 +143,12 @@ def login(username, password, operator):
     """
     用校园网用户名（学号）和校园网密码登录校园网
     """
-    # 因为密码是不能给别人看见的，所有要在这里检测缓存的密码
+    # 如果网络可以访问则直接退出程序
+    if isInternetAccess():
+        logger.info('网络可以访问, 退出程序')
+        return
+
+        # 因为密码是不能给别人看见的，所有要在这里检测缓存的密码
 
     if password == "*" * len(getProperties("password")) or password is None:
         password = getProperties("password")
@@ -152,6 +162,7 @@ def login(username, password, operator):
     retry = 0
     # todo抽象成一个方法来检测是否能上网
     while True:  # 检测是否能够连接上网
+        resp = ''
         try:
             resp = get(
                 f"http://login.hnust.cn:801/eportal/?c=Portal&a=login&callback=dr1004&login_method=1&user_account=%2C0" +
@@ -200,7 +211,8 @@ def login(username, password, operator):
             raise
         except BaseException as e:
             logger.error("未知错误[{}]".format(type(e)))
-            logger.error("resp.text: {}".format(resp.text))
+            if resp != '':
+                logger.error("resp.text: {}".format(resp.text))
             raise
         finally:
             retry += 1
