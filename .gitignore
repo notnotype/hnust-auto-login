@@ -4,6 +4,6 @@ __pycache__
 build
 hnust
 hnust.spec
+./log/*
 dist
-!dist/hnust.exe
-!dist/hnust
+dist/*

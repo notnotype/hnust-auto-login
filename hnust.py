@@ -4,6 +4,8 @@ import sys
 import logging
 from os.path import exists
 from time import localtime
+from types import MethodType
+import json
 
 import click
 import socket
@@ -11,34 +13,59 @@ from requests import get
 from requests.exceptions import ConnectionError, ConnectTimeout
 from base64 import b64decode
 
-logger: logging.Logger
+
+class FormatFilter(logging.Filter):
+
+    def filter(self, record: logging.LogRecord) -> int:
+        def getMessage(obj):
+            msg = str(obj.msg)
+            if obj.args:
+                msg = msg.format(*obj.args)
+            return msg
+
+        # 使用`{`风格格式化
+        record.getMessage = MethodType(getMessage, record)
+
+        # context: dict = record.__getattribute__('context')
+        # record.msg += '\n' + '\n'.join([f'{str(k)}: {str(v)}' for k, v in context.items()])
+
+        return True
 
 
-def init_logger(log_dir='log', level=logging.INFO):
-    global logger
-    logger = logging.Logger(__name__)
+def init_logger(log_dir='log', level=logging.INFO) -> logging.Logger:
     if not exists(log_dir):
         os.mkdir(log_dir)
-    handler = logging.FileHandler(f"{log_dir}/"
-                                  f"{localtime().tm_year}-"
-                                  f"{localtime().tm_mon}-"
-                                  f"{localtime().tm_mday}--"
-                                  f"{localtime().tm_hour}h-"
-                                  f"{localtime().tm_min}m-"
-                                  f"{localtime().tm_sec}s.log",
-                                  encoding="utf-8")
-    formatter = logging.Formatter("[%(levelname)-5.5s][%(funcName)-8.8s][%(lineno)3.3d行]-[%(message)s]")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    file_handler = logging.FileHandler(f"{log_dir}/"
+                                       f"{localtime().tm_year}-"
+                                       f"{localtime().tm_mon}-"
+                                       f"{localtime().tm_mday}--"
+                                       f"{localtime().tm_hour}h-"
+                                       f"{localtime().tm_min}m-"
+                                       f"{localtime().tm_sec}s.log",
+                                       encoding="utf-8")
+    formatter = logging.Formatter('[{asctime}]'
+                                  '[{levelname!s:5}]'
+                                  '[{name!s:^16}]'
+                                  '[{lineno!s:4}行]'
+                                  '[{module}.{funcName}]\n'
+                                  '{message!s}',
+                                  style='{',
+                                  datefmt='%Y-%m-%d %H:%M:%S')
+    file_handler.setFormatter(formatter)
 
+    _logger = logging.Logger(__name__)
     console = logging.StreamHandler()
-    console.setLevel(level)
+
+    _logger.addHandler(file_handler)
     console.setFormatter(formatter)
 
-    logger.addHandler(handler)
-    logger.addHandler(console)
-    logger.info('logger name' + __name__)
+    _logger.addHandler(file_handler)
+    _logger.addHandler(console)
+    _logger.addFilter(FormatFilter())
+    return _logger
 
+
+logger = init_logger()
 
 headers = {"User-Agent": r"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
                          "Chrome/86.0.4240.111 Safari/537.36"}
@@ -150,7 +177,7 @@ def login(username, password, operator):
                 logger.info(message)
                 break
             else:
-                message = "[登录状态]: 芜湖, 未处理信息: " + b64decode(resp.text[7:-1]).decode()
+                message = "[登录状态]: 芜湖, 未处理信息: " + b64decode(json.loads(resp.text[7:-1])['msg']).decode()
                 logger.error(message)
                 break
 
@@ -180,7 +207,6 @@ def login(username, password, operator):
             if retry >= 10:
                 break
             # logger.info("尝试次数: " + str(retry))
-
 
 
 # todo 返回网页包含了用户网络信息，使用re库来获取script标签里面的变量
