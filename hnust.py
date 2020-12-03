@@ -3,12 +3,13 @@ import random
 import sys
 import logging
 from os.path import exists
-from time import localtime
+from time import localtime, sleep
 from types import MethodType
 import json
 
 import click
 import socket
+import requests
 from requests import get
 from requests.exceptions import ConnectionError, ConnectTimeout
 from base64 import b64decode
@@ -83,20 +84,31 @@ def getIp():
     查询本机ip地址
     :return: ip
     """
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    retry = 0
     try:
-        s.connect(('192.168.254.226', 80))
-        ip = s.getsockname()[0]
-    finally:
-        s.close()
-    return ip
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(('192.168.254.226', 80))
+            ip = s.getsockname()[0]
+        finally:
+            s.close()
+        return ip
+    except socket.SO_ERROR:
+        if retry >= 300:
+            raise
+        retry += 1
+        logger.info('不能连接网络,重试......')
+        sleep(1)
 
 
 def isInternetAccess():
-    if "<title>上网登录页</title>" in get("http://www.baidu.com", timeout=2).text:
+    try:
+        if "<title>上网登录页</title>" in get("http://www.baidu.com", timeout=2).text:
+            return False
+        else:
+            return True
+    except requests.RequestException:
         return False
-    else:
-        return True
 
 
 def getProperties(prop):
@@ -157,7 +169,8 @@ def login(username, password, operator):
     setProperties("password", password)
     setProperties("operator", operator)
 
-    operatorMap = {"dx": "%40telecom", "yd": "%40cmcc", "lt": "%40unicom", "xyw": ""}
+    operatorMap = {"dx": "%40telecom",
+                   "yd": "%40cmcc", "lt": "%40unicom", "xyw": ""}
 
     retry = 0
     # todo抽象成一个方法来检测是否能上网
@@ -188,7 +201,8 @@ def login(username, password, operator):
                 logger.info(message)
                 break
             else:
-                message = "[登录状态]: 芜湖, 未处理信息: " + b64decode(json.loads(resp.text[7:-1])['msg']).decode()
+                message = "[登录状态]: 芜湖, 未处理信息: " + \
+                    b64decode(json.loads(resp.text[7:-1])['msg']).decode()
                 logger.error(message)
                 break
 
@@ -204,19 +218,17 @@ def login(username, password, operator):
         except ConnectTimeout:
             message = "超时(你可能没有连接校园网wifi)"
             logger.error(message)
-            raise
         except ConnectionError:
             message = "找不到主机(你可能没有连接校园网wifi)"
             logger.error(message)
-            raise
         except BaseException as e:
             logger.error("未知错误[{}]".format(type(e)))
             if resp != '':
                 logger.error("resp.text: {}".format(resp.text))
-            raise
         finally:
             retry += 1
-            if retry >= 10:
+            sleep(1)
+            if retry >= 600:
                 break
             # logger.info("尝试次数: " + str(retry))
 
@@ -244,7 +256,8 @@ def _logOut():
         elif resp.text == r'dr1003({"result":"1","msg":"\u6ce8\u9500\u6210\u529f"})':
             message = f"IP：【{getIp()}】注销成功"
         else:
-            message = "芜湖, 未处理信息: " + resp.text[7:-1].encode().decode("unicode_escape")
+            message = "芜湖, 未处理信息: " + \
+                resp.text[7:-1].encode().decode("unicode_escape")
     except ConnectTimeout:
         message = "超时(你可能没有连接校园网wifi)"
     except ConnectionError:
@@ -268,7 +281,8 @@ def addStartup():
     """把这个程序添加到开机启动里面 这样每次开机就能够自动检测登录了"""
 
     try:
-        os.popen("explorer.exe \"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp")
+        os.popen(
+            "explorer.exe \"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp")
         logger.info("记得使用管理员的身份运行")
         logger.warning("已经禁用此功能, 若要实现开机自启请使用windows计划任务代替之")
         cmd1 = f"copy hnust.py \"C:\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\hnust.py\""
@@ -306,8 +320,11 @@ init_logger(level=logging.DEBUG)
 if __name__ == '__main__':
     if "StartUp" in sys.argv[0] and len(sys.argv) <= 1:  # 如果在启动目录下则自动检测登录
         sys.argv = [sys.argv[0], "login",
-                    "--username", getProperties("username") if getProperties("username") else None,
-                    "--password", getProperties("password") if getProperties("password") else None,
-                    "--operator", getProperties("operator") if getProperties("operator") else None,
+                    "--username", getProperties(
+                        "username") if getProperties("username") else None,
+                    "--password", getProperties(
+                        "password") if getProperties("password") else None,
+                    "--operator", getProperties(
+                        "operator") if getProperties("operator") else None,
                     ]
     cli()
